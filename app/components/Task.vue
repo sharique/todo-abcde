@@ -93,14 +93,21 @@ const deleteTask = () => {
 
 <style scoped>
 .task-item {
+    background-color: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    margin-bottom: 0.5rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #f9f9f9;
+    transition: all 0.2s ease-in-out;
+    margin-bottom: var(--spacing-sm);
+}
+
+.task-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .task-content {
@@ -108,89 +115,112 @@ const deleteTask = () => {
 }
 
 .task-title {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-700);
 }
 
 .task-details {
     display: flex;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: var(--spacing-sm);
 }
 
 .task-field {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
 }
 
 .task-field label {
-    font-size: 0.9rem;
-    color: #666;
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    font-weight: var(--font-weight-medium);
     min-width: 80px;
 }
 
 .status-select,
 .category-select,
 .deadline-input {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--gray-400);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
     min-width: 120px;
+}
+
+.status-select:focus,
+.category-select:focus,
+.deadline-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(76 175 80 / 0.1);
 }
 
 .status-select:disabled,
 .category-select:disabled,
 .deadline-input:disabled {
-    background-color: #f5f5f5;
-    color: #999;
+    background-color: var(--gray-100);
+    color: var(--gray-500);
     cursor: not-allowed;
 }
 
 .task-actions {
-    margin-left: 1rem;
+    margin-left: var(--spacing-lg);
 }
 
 .delete-btn {
-    background-color: #ff4444;
-    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    font-size: 0.9rem;
+    text-decoration: none;
+    transition:
+        background-color 0.2s,
+        transform 0.1s;
+    background-color: var(--danger-color);
+    color: var(--white);
 }
 
 .delete-btn:hover {
-    background-color: #cc0000;
+    background-color: var(--danger-hover);
+    transform: translateY(-1px);
+}
+
+.delete-btn:active {
+    transform: translateY(0);
 }
 
 /* Status-based styling */
 .task-item:has(.status-select[value="completed"]) {
-    background-color: #e8f5e8;
-    border-color: #4caf50;
+    background-color: var(--completed-bg);
+    border-color: var(--completed-border);
 }
 
 .task-item:has(.status-select[value="in progress"]) {
-    background-color: #fff3e0;
-    border-color: #ff9800;
+    background-color: var(--in-progress-bg);
+    border-color: var(--in-progress-border);
 }
 
 .task-item:has(.status-select[value="todo"]) {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
+    background-color: var(--todo-bg);
+    border-color: var(--todo-border);
 }
 
 @media (max-width: 768px) {
-    .task-details {
-        gap: 0.25rem;
-    }
-
     .task-field {
         flex-direction: column;
         align-items: flex-start;
+        gap: var(--spacing-xs);
     }
 
     .task-field label {

@@ -1,11 +1,11 @@
 <template>
-    <header>
+    <header class="app-header">
         <div>
-            <h1>Welcome to todo list app</h1>
+            <h1 class="app-title">Welcome to todo list app</h1>
         </div>
-        <nav>
-            <ul>
-                <li><a href="/">Home</a></li>
+        <nav class="app-nav">
+            <ul class="nav-list">
+                <li><a href="/" class="nav-link">Home</a></li>
             </ul>
         </nav>
     </header>

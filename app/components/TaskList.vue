@@ -28,17 +28,39 @@
         </div>
         <categoriesExaplined />
         <div class="task-filters">
-            <button
-                v-for="filter in filters"
-                :key="filter.value"
-                @click="activeFilter = filter.value"
-                :class="[
-                    'filter-btn',
-                    { active: activeFilter === filter.value },
-                ]"
-            >
-                {{ filter.label }}
-            </button>
+            <div class="filter-group">
+                <label for="filter-select">Filter by status:</label>
+                <div class="filter-buttons">
+                    <button
+                        v-for="filter in filters"
+                        :key="filter.value"
+                        @click="activeFilter = filter.value"
+                        :class="[
+                            'filter-btn',
+                            { active: activeFilter === filter.value },
+                        ]"
+                    >
+                        {{ filter.label }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="date-filter-select">Filter by date:</label>
+                <div class="filter-buttons">
+                    <button
+                        v-for="dateFilter in dateFilters"
+                        :key="dateFilter.value"
+                        @click="activeDateFilter = dateFilter.value"
+                        :class="[
+                            'filter-btn',
+                            { active: activeDateFilter === dateFilter.value },
+                        ]"
+                    >
+                        {{ dateFilter.label }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="tasks-container">
@@ -76,6 +98,7 @@ const newTaskTitle = ref("");
 const newTaskCategory = ref("c");
 const newTaskDeadline = ref("");
 const activeFilter = ref("all");
+const activeDateFilter = ref("all");
 const tasks = ref([]);
 
 const filters = [
@@ -83,6 +106,13 @@ const filters = [
     { value: "todo", label: "To Do" },
     { value: "in progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
+];
+
+const dateFilters = [
+    { value: "all", label: "All" },
+    { value: "yesterday", label: "Yesterday" },
+    { value: "today", label: "Today" },
+    { value: "tomorrow", label: "Tomorrow" },
 ];
 
 // Sample initial data
@@ -119,12 +149,44 @@ const sampleTasks = [
 
 const filteredTasks = computed(() => {
     let filtered;
+
+    // Filter by status
     if (activeFilter.value === "all") {
         filtered = tasks.value;
     } else {
         filtered = tasks.value.filter(
             (task) => task.status === activeFilter.value,
         );
+    }
+
+    // Filter by date
+    if (activeDateFilter.value !== "all") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        filtered = filtered.filter((task) => {
+            if (!task.deadline) return false;
+
+            const taskDate = new Date(task.deadline);
+            taskDate.setHours(0, 0, 0, 0);
+
+            switch (activeDateFilter.value) {
+                case "yesterday":
+                    return taskDate.getTime() === yesterday.getTime();
+                case "today":
+                    return taskDate.getTime() === today.getTime();
+                case "tomorrow":
+                    return taskDate.getTime() === tomorrow.getTime();
+                default:
+                    return true;
+            }
+        });
     }
 
     // Sort by category: A, B, C, D, E
@@ -182,10 +244,18 @@ const getTaskCount = (status) => {
 };
 
 const getEmptyMessage = () => {
-    if (activeFilter.value === "all") {
+    if (activeFilter.value === "all" && activeDateFilter.value === "all") {
         return "No tasks yet. Add your first task!";
     }
-    return `No ${activeFilter.value} tasks found.`;
+
+    let message = "No tasks found";
+    if (activeFilter.value !== "all") {
+        message += ` with status "${activeFilter.value}"`;
+    }
+    if (activeDateFilter.value !== "all") {
+        message += ` for ${activeDateFilter.value}`;
+    }
+    return message + ".";
 };
 
 onMounted(() => {
@@ -198,124 +268,168 @@ onMounted(() => {
 .task-list-container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--spacing-2xl);
 }
 
 .task-list-header {
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-xl);
 }
 
 .task-list-header h2 {
-    margin: 0 0 1rem 0;
-    color: #333;
-    font-size: 2rem;
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--gray-700);
+    font-size: var(--font-size-2xl);
 }
 
 .add-task-form {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
     flex-wrap: wrap;
 }
 
 .task-input {
-    flex: 2;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    flex: 1;
+    padding: var(--spacing-md);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
     min-width: 200px;
+}
+
+.task-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(76 175 80 / 0.1);
 }
 
 .category-input,
 .deadline-input {
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    padding: var(--spacing-md);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
     min-width: 120px;
 }
 
-.task-input:focus,
 .category-input:focus,
 .deadline-input:focus {
     outline: none;
-    border-color: #4caf50;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(76 175 80 / 0.1);
 }
 
 .add-btn {
-    background-color: #4caf50;
-    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md) var(--spacing-xl);
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
+    text-decoration: none;
+    transition:
+        background-color 0.2s,
+        transform 0.1s;
+    background-color: var(--primary-color);
+    color: var(--white);
 }
 
 .add-btn:hover {
-    background-color: #45a049;
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.add-btn:active {
+    transform: translateY(0);
 }
 
 .task-filters {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.filter-group label {
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    font-weight: var(--font-weight-medium);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
 }
 
 .filter-btn {
-    padding: 0.5rem 1rem;
-    border: 1px solid #ddd;
-    background-color: white;
-    border-radius: 4px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 1px solid var(--gray-300);
+    background-color: var(--white);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
+    transition: all 0.2s;
 }
 
 .filter-btn:hover {
-    background-color: #f5f5f5;
+    background-color: var(--gray-50);
 }
 
 .filter-btn.active {
-    background-color: #4caf50;
-    color: white;
-    border-color: #4caf50;
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
 }
 
 .tasks-container {
     min-height: 300px;
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-2xl);
 }
 
 .no-tasks {
     text-align: center;
-    padding: 3rem;
-    color: #666;
+    padding: var(--spacing-3xl);
+    color: var(--gray-600);
 }
 
 .no-tasks p {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
 }
 
 .tasks-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
 }
 
 .task-summary {
+    background-color: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
     text-align: center;
-    padding: 1rem;
-    background-color: #f5f5f5;
-    border-radius: 8px;
-    color: #666;
-    font-size: 0.9rem;
+    color: var(--gray-600);
+    font-size: var(--font-size-sm);
 }
 
 @media (max-width: 768px) {
     .task-list-container {
-        padding: 1rem;
+        padding: var(--spacing-lg);
     }
 
     .add-task-form {
@@ -328,8 +442,12 @@ onMounted(() => {
         min-width: auto;
     }
 
-    .task-filters {
-        flex-wrap: wrap;
+    .filter-group {
+        gap: var(--spacing-xs);
+    }
+
+    .filter-buttons {
+        gap: var(--spacing-xs);
     }
 }
 </style>
