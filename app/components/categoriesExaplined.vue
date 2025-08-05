@@ -1,7 +1,10 @@
 <template>
     <div class="categories-explanation">
-        <h3 class="categories-title">Explanation of Categories</h3>
-        <ul class="categories-list">
+        <div class="flex justify-between">
+            <h3 class="categories-title">Explanation of Categories</h3>
+            <button class="toggle btn" @click="onToggle">{{ toggle }}</button>
+        </div>
+        <ul class="categories-list" :class="toggle">
             <li class="category-item category-a">
                 <span class="category-label">Category A:</span> Must do,
                 important, urgent
@@ -46,6 +49,10 @@
     margin: 0;
     padding: 0;
     list-style: none;
+    &.hide {
+        display: none;
+        transition: fade 1s;
+    }
 }
 
 .category-item {
@@ -108,3 +115,21 @@
     color: var(--gray-500);
 }
 </style>
+<script lang="ts" scoped>
+export default {
+    data() {
+        return {
+            toggle: "show",
+        };
+    },
+    methods: {
+        onToggle() {
+            if (this.toggle === "show") {
+                this.toggle = "hide";
+            } else {
+                this.toggle = "show";
+            }
+        },
+    },
+};
+</script>

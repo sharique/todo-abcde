@@ -1,7 +1,7 @@
 <template>
     <div>
         <Header />
-        <TaskList />
+        <NuxtPage />
     </div>
 </template>
 <style>
