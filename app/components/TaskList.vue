@@ -92,6 +92,11 @@
 </template>
 
 <script setup>
+import prisma from "~/lib/prisma";
+
+const tasks_a = await prisma.task.findMany();
+console.log(tasks_a);
+
 import { ref, computed, onMounted } from "vue";
 
 const newTaskTitle = ref("");
