@@ -9,6 +9,7 @@
                     placeholder="Enter new task title"
                     class="task-input"
                     @keyup.enter="addTask"
+                    required
                 />
                 <select v-model="newTaskCategory" class="category-input">
                     <option value="a">Category A</option>
@@ -23,7 +24,9 @@
                     class="deadline-input"
                     placeholder="Optional deadline"
                 />
-                <button @click="addTask" class="add-btn">Add Task</button>
+                <button @click="addTask" class="add-btn" :disabled="addingTask">
+                    {{ addingTask ? "Adding..." : "Add Task" }}
+                </button>
             </div>
         </div>
         <categoriesExaplined />
@@ -63,8 +66,20 @@
             </div>
         </div>
 
+        <!-- Error Display -->
+        <div v-if="error" class="error-banner">
+            <div class="error-content">
+                <p class="error-message">{{ error }}</p>
+                <button @click="dismissError" class="dismiss-btn">×</button>
+            </div>
+        </div>
+
         <div class="tasks-container">
-            <div v-if="filteredTasks.length === 0" class="no-tasks">
+            <div v-if="loading" class="loading-state">
+                <p>Loading tasks...</p>
+            </div>
+
+            <div v-else-if="filteredTasks.length === 0" class="no-tasks">
                 <p>{{ getEmptyMessage() }}</p>
             </div>
 
@@ -91,15 +106,25 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+type Task = {
+    id: number;
+    title: string;
+    status: string;
+    category: string;
+    deadline: string | Date | null;
+};
 
 const newTaskTitle = ref("");
 const newTaskCategory = ref("c");
 const newTaskDeadline = ref("");
 const activeFilter = ref("all");
 const activeDateFilter = ref("all");
-const tasks = ref([]);
+const tasks = ref<Task[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const addingTask = ref(false);
 
 const filters = [
     { value: "all", label: "All" },
@@ -113,38 +138,6 @@ const dateFilters = [
     { value: "yesterday", label: "Yesterday" },
     { value: "today", label: "Today" },
     { value: "tomorrow", label: "Tomorrow" },
-];
-
-// Sample initial data
-const sampleTasks = [
-    {
-        id: 1,
-        title: "Learn Nuxt.js",
-        status: "in progress",
-        category: "b",
-        deadline: "2024-01-15",
-    },
-    {
-        id: 2,
-        title: "Build todo app",
-        status: "todo",
-        category: "a",
-        deadline: "2024-01-20",
-    },
-    {
-        id: 3,
-        title: "Write documentation",
-        status: "todo",
-        category: "c",
-        deadline: null,
-    },
-    {
-        id: 4,
-        title: "Setup project",
-        status: "completed",
-        category: "d",
-        deadline: "2023-12-30",
-    },
 ];
 
 const filteredTasks = computed(() => {
@@ -193,53 +186,101 @@ const filteredTasks = computed(() => {
     return filtered.sort((a, b) => a.category.localeCompare(b.category));
 });
 
-const addTask = () => {
-    if (newTaskTitle.value.trim()) {
-        const newTask = {
-            id: Date.now(),
+const addTask = async () => {
+    if (newTaskTitle.value.trim() && !addingTask.value) {
+        addingTask.value = true;
+        const newTask: Task = {
+            id: Math.random() * 100,
             title: newTaskTitle.value.trim(),
             status: "todo",
             category: newTaskCategory.value,
             deadline: newTaskDeadline.value || null,
         };
-        tasks.value.push(newTask);
-        newTaskTitle.value = "";
-        newTaskCategory.value = "c";
-        newTaskDeadline.value = "";
+
+        try {
+            // Add task locally first for immediate feedback
+            tasks.value.push(newTask);
+
+            // Clear form immediately for better UX
+            newTaskTitle.value = "";
+            newTaskCategory.value = "c";
+            newTaskDeadline.value = "";
+
+            // Send to API
+            const response = await $fetch("/api/tasks", {
+                method: "POST",
+                body: newTask,
+            });
+
+            // Update local task with server response if needed
+            if (response && response.data) {
+                const index = tasks.value.findIndex(
+                    (task) => task.id === newTask.id,
+                );
+                if (index !== -1) {
+                    tasks.value[index] = { ...newTask, ...response.data };
+                }
+            }
+        } catch (err) {
+            // Remove from local state if API call fails
+            const index = tasks.value.findIndex(
+                (task) => task.id === newTask.id,
+            );
+            if (index !== -1) {
+                tasks.value.splice(index, 1);
+            }
+
+            // Restore form values on error
+            newTaskTitle.value = newTask.title;
+            newTaskCategory.value = newTask.category;
+            newTaskDeadline.value =
+                typeof newTask.deadline === "string" ? newTask.deadline : "";
+
+            const errorMsg = err as any;
+            error.value =
+                "Failed to add task: " +
+                (errorMsg.data?.message || errorMsg.message || "Unknown error");
+            console.error("Error adding task:", err);
+        } finally {
+            addingTask.value = false;
+        }
     }
 };
 
-const handleUpdateStatus = (taskId, newStatus) => {
+const handleUpdateStatus = (taskId: number, newStatus: string) => {
     const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
-    if (taskIndex !== -1) {
+    if (taskIndex !== -1 && tasks.value[taskIndex]) {
         tasks.value[taskIndex].status = newStatus;
     }
 };
 
-const handleUpdateCategory = (taskId, newCategory) => {
+const handleUpdateCategory = (taskId: number, newCategory: string) => {
     const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
-    if (taskIndex !== -1) {
+    if (taskIndex !== -1 && tasks.value[taskIndex]) {
         tasks.value[taskIndex].category = newCategory;
         // Trigger reactivity to re-sort the tasks
         tasks.value = [...tasks.value];
     }
 };
 
-const handleUpdateDeadline = (taskId, newDeadline) => {
+const handleUpdateDeadline = (
+    taskId: number,
+    newDeadline: string | Date | null,
+) => {
     const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
-    if (taskIndex !== -1) {
+    if (taskIndex !== -1 && tasks.value[taskIndex]) {
         tasks.value[taskIndex].deadline = newDeadline || null;
     }
 };
 
-const handleDeleteTask = (taskId) => {
+const handleDeleteTask = (taskId: number) => {
     const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
-    if (taskIndex !== -1) {
+    if (taskIndex !== -1 && tasks.value[taskIndex]) {
         tasks.value.splice(taskIndex, 1);
     }
 };
 
-const getTaskCount = (status) => {
+const getTaskCount = (status: string) => {
     return tasks.value.filter((task) => task.status === status).length;
 };
 
@@ -258,9 +299,29 @@ const getEmptyMessage = () => {
     return message + ".";
 };
 
+const loadTasks = async () => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const response = (await $fetch("/api/tasks")) as any;
+        tasks.value = response?.data || [];
+    } catch (err: any) {
+        error.value = err?.message || "Failed to load tasks";
+        console.error("Error loading tasks:", err);
+        // Fallback to empty array if API fails
+        tasks.value = [];
+    } finally {
+        loading.value = false;
+    }
+};
+
+const dismissError = () => {
+    error.value = null;
+};
+
 onMounted(() => {
-    // Load sample tasks on component mount
-    tasks.value = [...sampleTasks];
+    loadTasks();
 });
 </script>
 
@@ -425,6 +486,89 @@ onMounted(() => {
     text-align: center;
     color: var(--gray-600);
     font-size: var(--font-size-sm);
+}
+
+.loading-state,
+.error-state {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    color: var(--gray-600);
+}
+
+.error-state {
+    color: var(--danger-color);
+}
+
+.retry-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    background-color: var(--white);
+    color: var(--primary-color);
+    margin-top: var(--spacing-md);
+    transition: all 0.2s;
+}
+
+.retry-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.add-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.add-btn:disabled:hover {
+    background-color: var(--primary-color);
+    transform: none;
+}
+
+.error-banner {
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.error-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.error-message {
+    color: var(--danger-color);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+}
+
+.dismiss-btn:hover {
+    background-color: #fecaca;
 }
 
 @media (max-width: 768px) {

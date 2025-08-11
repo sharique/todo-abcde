@@ -114,6 +114,9 @@
 .category-e .category-label {
     color: var(--gray-500);
 }
+.toggle.btn {
+    margin-bottom: var(--spacing-sm);
+}
 </style>
 <script lang="ts" scoped>
 export default {
