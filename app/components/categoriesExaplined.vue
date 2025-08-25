@@ -79,7 +79,7 @@
 export default {
     data() {
         return {
-            toggle: "show",
+            toggle: "hide",
         };
     },
     methods: {

@@ -56,7 +56,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 const props = defineProps({
     task: {
         type: Object,
@@ -77,18 +77,69 @@ const emit = defineEmits([
     "update-deadline",
     "delete-task",
     "task-deleted",
+    "task-updated",
+    "update-error",
 ]);
 
-const updateStatus = () => {
-    emit("update-status", props.task.id, props.task.status);
+const updateStatus = async () => {
+    try {
+        await $fetch(`/api/tasks/${props.task.id}`, {
+            method: "PUT",
+            body: {
+                status: props.task.status,
+            },
+        });
+        emit("update-status", props.task.id, props.task.status);
+        emit("task-updated", props.task.title, "status", props.task.status);
+    } catch (error) {
+        console.error("Failed to update task status:", error);
+        const errorMsg = error as any;
+        emit(
+            "update-error",
+            `Failed to update status: ${errorMsg.data?.message || errorMsg.message || "Unknown error"}`,
+        );
+    }
 };
 
-const updateCategory = () => {
-    emit("update-category", props.task.id, props.task.category);
+const updateCategory = async () => {
+    try {
+        await $fetch(`/api/tasks/${props.task.id}`, {
+            method: "PUT",
+            body: {
+                category: props.task.category,
+            },
+        });
+        emit("update-category", props.task.id, props.task.category);
+        emit("task-updated", props.task.title, "category", props.task.category);
+    } catch (error) {
+        console.error("Failed to update task category:", error);
+        const errorMsg = error as any;
+        emit(
+            "update-error",
+            `Failed to update category: ${errorMsg.data?.message || errorMsg.message || "Unknown error"}`,
+        );
+    }
 };
 
-const updateDeadline = () => {
-    emit("update-deadline", props.task.id, props.task.deadline);
+const updateDeadline = async () => {
+    try {
+        await $fetch(`/api/tasks/${props.task.id}`, {
+            method: "PUT",
+            body: {
+                deadline: props.task.deadline,
+            },
+        });
+        emit("update-deadline", props.task.id, props.task.deadline);
+        const deadlineText = props.task.deadline || "removed";
+        emit("task-updated", props.task.title, "deadline", deadlineText);
+    } catch (error) {
+        console.error("Failed to update task deadline:", error);
+        const errorMsg = error as any;
+        emit(
+            "update-error",
+            `Failed to update deadline: ${errorMsg.data?.message || errorMsg.message || "Unknown error"}`,
+        );
+    }
 };
 
 const deleteTask = async () => {
@@ -97,7 +148,7 @@ const deleteTask = async () => {
             method: "DELETE",
         });
 
-        emit("task-deleted", props.task.id);
+        emit("task-deleted", props.task.id, props.task.title);
     } catch (error) {
         console.error("Failed to delete task:", error);
         // Fallback to old behavior for backward compatibility

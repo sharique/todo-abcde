@@ -39,7 +39,7 @@ type Task = {
 };
 
 const emit = defineEmits<{
-    taskAdded: [];
+    taskAdded: [taskTitle: string];
     error: [message: string];
 }>();
 
@@ -72,7 +72,7 @@ const addTask = async () => {
             newTaskDeadline.value = "";
 
             // Emit event to parent to reload tasks
-            emit("taskAdded");
+            emit("taskAdded", newTask.title);
         } catch (err) {
             const errorMsg = err as any;
             const errorMessage =

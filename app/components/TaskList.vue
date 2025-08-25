@@ -7,6 +7,15 @@
                 @error="handleAddTaskError"
             />
         </div>
+
+        <!-- Message Component -->
+        <Message
+            v-if="messageText"
+            :message="messageText"
+            :type="messageType"
+            :show="showMessage"
+            @dismiss="dismissMessage"
+        />
         <categoriesExaplined />
         <div class="task-filters">
             <div class="filter-group">
@@ -71,6 +80,8 @@
                     @update-deadline="handleUpdateDeadline"
                     @delete-task="handleDeleteTask"
                     @task-deleted="handleTaskDeleted"
+                    @task-updated="handleTaskUpdated"
+                    @update-error="handleUpdateError"
                 />
             </div>
         </div>
@@ -100,6 +111,9 @@ const activeDateFilter = ref("all");
 const tasks = ref<Task[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const messageText = ref("");
+const messageType = ref<"success" | "error" | "info">("info");
+const showMessage = ref(false);
 
 const filters = [
     { value: "all", label: "All" },
@@ -161,16 +175,18 @@ const filteredTasks = computed(() => {
     return filtered.sort((a, b) => a.category.localeCompare(b.category));
 });
 
-const handleTaskAdded = () => {
+const handleTaskAdded = (taskTitle: string) => {
     loadTasks();
+    showSuccessMessage(`Task "${taskTitle}" added successfully!`);
 };
 
 const handleAddTaskError = (errorMessage: string) => {
     error.value = errorMessage;
 };
 
-const handleTaskDeleted = () => {
+const handleTaskDeleted = (taskId: number, taskTitle: string) => {
     loadTasks();
+    showSuccessMessage(`Task "${taskTitle}" deleted successfully!`);
 };
 
 const handleUpdateStatus = (taskId: number, newStatus: string) => {
@@ -197,6 +213,14 @@ const handleUpdateDeadline = (
     if (taskIndex !== -1 && tasks.value[taskIndex]) {
         tasks.value[taskIndex].deadline = newDeadline || null;
     }
+};
+
+const handleTaskUpdated = (taskTitle: string, field: string, value: string) => {
+    showSuccessMessage(`Task "${taskTitle}" ${field} updated to "${value}"`);
+};
+
+const handleUpdateError = (errorMessage: string) => {
+    showErrorMessage(errorMessage);
 };
 
 const handleDeleteTask = (taskId: number) => {
@@ -244,6 +268,25 @@ const loadTasks = async () => {
 
 const dismissError = () => {
     error.value = null;
+};
+
+const showSuccessMessage = (message: string) => {
+    messageText.value = message;
+    messageType.value = "success";
+    showMessage.value = true;
+};
+
+const showErrorMessage = (message: string) => {
+    messageText.value = message;
+    messageType.value = "error";
+    showMessage.value = true;
+};
+
+const dismissMessage = () => {
+    showMessage.value = false;
+    setTimeout(() => {
+        messageText.value = "";
+    }, 300); // Wait for transition to complete
 };
 
 onMounted(() => {
