@@ -1,5 +1,9 @@
 <template>
-    <div class="task-item" :data-category="task.category">
+    <div
+        class="task-item"
+        :class="`category-${task.category}`"
+        :data-category="task.category"
+    >
         <div class="task-content">
             <h3 class="task-title">{{ task.title }}</h3>
             <div class="task-details">
@@ -93,7 +97,6 @@ const deleteTask = () => {
 
 <style scoped>
 .task-item {
-    background-color: var(--white);
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-md);
     padding: var(--spacing-lg);

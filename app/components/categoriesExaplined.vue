@@ -62,7 +62,8 @@
     padding: var(--spacing-sm);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-xs);
-    border-left: 4px solid var(--gray-300);
+    border-left-width: 4px;
+    border-left-style: solid;
 }
 
 .category-label {
@@ -70,50 +71,6 @@
     min-width: 80px;
 }
 
-.category-a {
-    background-color: #fef2f2;
-    border-left-color: var(--danger-color);
-}
-
-.category-a .category-label {
-    color: var(--danger-color);
-}
-
-.category-b {
-    background-color: #fff7ed;
-    border-left-color: var(--warning-color);
-}
-
-.category-b .category-label {
-    color: var(--warning-color);
-}
-
-.category-c {
-    background-color: var(--gray-50);
-    border-left-color: var(--gray-400);
-}
-
-.category-c .category-label {
-    color: var(--gray-600);
-}
-
-.category-d {
-    background-color: #eff6ff;
-    border-left-color: #3b82f6;
-}
-
-.category-d .category-label {
-    color: #3b82f6;
-}
-
-.category-e {
-    background-color: #f3f4f6;
-    border-left-color: var(--gray-500);
-}
-
-.category-e .category-label {
-    color: var(--gray-500);
-}
 .toggle.btn {
     margin-bottom: var(--spacing-sm);
 }
