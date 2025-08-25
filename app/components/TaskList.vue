@@ -2,32 +2,10 @@
     <div class="task-list-container">
         <div class="task-list-header">
             <h2>Todo List</h2>
-            <div class="add-task-form">
-                <input
-                    v-model="newTaskTitle"
-                    type="text"
-                    placeholder="Enter new task title"
-                    class="task-input"
-                    @keyup.enter="addTask"
-                    required
-                />
-                <select v-model="newTaskCategory" class="category-input">
-                    <option value="a">Category A</option>
-                    <option value="b">Category B</option>
-                    <option value="c">Category C</option>
-                    <option value="d">Category D</option>
-                    <option value="e">Category E</option>
-                </select>
-                <input
-                    v-model="newTaskDeadline"
-                    type="date"
-                    class="deadline-input"
-                    placeholder="Optional deadline"
-                />
-                <button @click="addTask" class="add-btn" :disabled="addingTask">
-                    {{ addingTask ? "Adding..." : "Add Task" }}
-                </button>
-            </div>
+            <AddTaskForm
+                @task-added="handleTaskAdded"
+                @error="handleAddTaskError"
+            />
         </div>
         <categoriesExaplined />
         <div class="task-filters">
@@ -92,6 +70,7 @@
                     @update-category="handleUpdateCategory"
                     @update-deadline="handleUpdateDeadline"
                     @delete-task="handleDeleteTask"
+                    @task-deleted="handleTaskDeleted"
                 />
             </div>
         </div>
@@ -116,15 +95,11 @@ type Task = {
     deadline: string | Date | null;
 };
 
-const newTaskTitle = ref("");
-const newTaskCategory = ref("c");
-const newTaskDeadline = ref("");
 const activeFilter = ref("all");
 const activeDateFilter = ref("all");
 const tasks = ref<Task[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const addingTask = ref(false);
 
 const filters = [
     { value: "all", label: "All" },
@@ -186,65 +161,16 @@ const filteredTasks = computed(() => {
     return filtered.sort((a, b) => a.category.localeCompare(b.category));
 });
 
-const addTask = async () => {
-    if (newTaskTitle.value.trim() && !addingTask.value) {
-        addingTask.value = true;
-        const newTask: Task = {
-            id: Math.random() * 100,
-            title: newTaskTitle.value.trim(),
-            status: "todo",
-            category: newTaskCategory.value,
-            deadline: newTaskDeadline.value || null,
-        };
+const handleTaskAdded = () => {
+    loadTasks();
+};
 
-        try {
-            // Add task locally first for immediate feedback
-            tasks.value.push(newTask);
+const handleAddTaskError = (errorMessage: string) => {
+    error.value = errorMessage;
+};
 
-            // Clear form immediately for better UX
-            newTaskTitle.value = "";
-            newTaskCategory.value = "c";
-            newTaskDeadline.value = "";
-
-            // Send to API
-            const response = await $fetch("/api/tasks", {
-                method: "POST",
-                body: newTask,
-            });
-
-            // Update local task with server response if needed
-            if (response && response.data) {
-                const index = tasks.value.findIndex(
-                    (task) => task.id === newTask.id,
-                );
-                if (index !== -1) {
-                    tasks.value[index] = { ...newTask, ...response.data };
-                }
-            }
-        } catch (err) {
-            // Remove from local state if API call fails
-            const index = tasks.value.findIndex(
-                (task) => task.id === newTask.id,
-            );
-            if (index !== -1) {
-                tasks.value.splice(index, 1);
-            }
-
-            // Restore form values on error
-            newTaskTitle.value = newTask.title;
-            newTaskCategory.value = newTask.category;
-            newTaskDeadline.value =
-                typeof newTask.deadline === "string" ? newTask.deadline : "";
-
-            const errorMsg = err as any;
-            error.value =
-                "Failed to add task: " +
-                (errorMsg.data?.message || errorMsg.message || "Unknown error");
-            console.error("Error adding task:", err);
-        } finally {
-            addingTask.value = false;
-        }
-    }
+const handleTaskDeleted = () => {
+    loadTasks();
 };
 
 const handleUpdateStatus = (taskId: number, newStatus: string) => {
@@ -340,77 +266,6 @@ onMounted(() => {
     margin: 0 0 var(--spacing-lg) 0;
     color: var(--gray-700);
     font-size: var(--font-size-2xl);
-}
-
-.add-task-form {
-    display: flex;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    flex-wrap: wrap;
-}
-
-.task-input {
-    flex: 1;
-    padding: var(--spacing-md);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-base);
-    transition:
-        border-color 0.2s,
-        box-shadow 0.2s;
-    min-width: 200px;
-}
-
-.task-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgb(76 175 80 / 0.1);
-}
-
-.category-input,
-.deadline-input {
-    padding: var(--spacing-md);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-base);
-    transition:
-        border-color 0.2s,
-        box-shadow 0.2s;
-    min-width: 120px;
-}
-
-.category-input:focus,
-.deadline-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgb(76 175 80 / 0.1);
-}
-
-.add-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-md) var(--spacing-xl);
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    text-decoration: none;
-    transition:
-        background-color 0.2s,
-        transform 0.1s;
-    background-color: var(--primary-color);
-    color: var(--white);
-}
-
-.add-btn:hover {
-    background-color: var(--primary-hover);
-    transform: translateY(-1px);
-}
-
-.add-btn:active {
-    transform: translateY(0);
 }
 
 .task-filters {
@@ -574,16 +429,6 @@ onMounted(() => {
 @media (max-width: 768px) {
     .task-list-container {
         padding: var(--spacing-lg);
-    }
-
-    .add-task-form {
-        flex-direction: column;
-    }
-
-    .task-input,
-    .category-input,
-    .deadline-input {
-        min-width: auto;
     }
 
     .filter-group {

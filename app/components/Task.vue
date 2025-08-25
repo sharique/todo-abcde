@@ -76,6 +76,7 @@ const emit = defineEmits([
     "update-category",
     "update-deadline",
     "delete-task",
+    "task-deleted",
 ]);
 
 const updateStatus = () => {
@@ -90,8 +91,18 @@ const updateDeadline = () => {
     emit("update-deadline", props.task.id, props.task.deadline);
 };
 
-const deleteTask = () => {
-    emit("delete-task", props.task.id);
+const deleteTask = async () => {
+    try {
+        await $fetch(`/api/tasks/${props.task.id}`, {
+            method: "DELETE",
+        });
+
+        emit("task-deleted", props.task.id);
+    } catch (error) {
+        console.error("Failed to delete task:", error);
+        // Fallback to old behavior for backward compatibility
+        emit("delete-task", props.task.id);
+    }
 };
 </script>
 

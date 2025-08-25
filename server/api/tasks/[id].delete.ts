@@ -3,46 +3,22 @@ import path from "path";
 
 export default defineEventHandler(async (event) => {
   try {
-    // Get the request body
-    const body = await readBody(event);
+    // Get task ID from route parameter
+    const taskId = getRouterParam(event, 'id');
 
-    // Validate required fields
-    if (!body.title || typeof body.title !== "string") {
+    if (!taskId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Title is required and must be a string",
+        statusMessage: "Task ID is required",
       });
     }
 
-    if (!body.category || !["a", "b", "c", "d", "e"].includes(body.category)) {
+    // Convert to number for comparison
+    const id = parseInt(taskId);
+    if (isNaN(id)) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Category must be one of: a, b, c, d, e",
-      });
-    }
-
-    // Create new task with default values
-    const newTask = {
-      id: body.id || Date.now() / 1000,
-      title: body.title.trim(),
-      status: body.status || "todo",
-      category: body.category,
-      deadline: body.deadline || null,
-    };
-
-    // Validate status
-    if (!["todo", "in progress", "completed"].includes(newTask.status)) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "Status must be one of: todo, in progress, completed",
-      });
-    }
-
-    // Validate deadline format if provided
-    if (newTask.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(newTask.deadline)) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "Deadline must be in YYYY-MM-DD format",
+        statusMessage: "Task ID must be a valid number",
       });
     }
 
@@ -65,11 +41,25 @@ export default defineEventHandler(async (event) => {
         currentTasks = JSON.parse(arrayMatch[1]);
       } catch (e) {
         console.error("Failed to parse existing tasks:", e);
+        throw createError({
+          statusCode: 500,
+          statusMessage: "Failed to parse tasks data",
+        });
       }
     }
 
-    // Add new task to array
-    currentTasks.push(newTask);
+    // Find task index
+    const taskIndex = currentTasks.findIndex((task: any) => task.id === id);
+
+    if (taskIndex === -1) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Task not found",
+      });
+    }
+
+    // Remove task from array
+    const deletedTask = currentTasks.splice(taskIndex, 1)[0];
 
     // Save updated tasks to file
     const fileContent = `// Sample initial data
@@ -81,11 +71,11 @@ export const sampleTasks = ${JSON.stringify(currentTasks, null, 2)};
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    console.log("Task created and saved successfully");
+    console.log("Task deleted successfully:", deletedTask);
     return {
-      data: newTask,
+      data: deletedTask,
       success: true,
-      message: "Task created successfully",
+      message: "Task deleted successfully",
     };
   } catch (error: any) {
     // If it's already a createError, re-throw it
@@ -96,7 +86,7 @@ export const sampleTasks = ${JSON.stringify(currentTasks, null, 2)};
     // Otherwise, create a generic server error
     throw createError({
       statusCode: 500,
-      statusMessage: "Internal server error while creating task",
+      statusMessage: "Internal server error while deleting task",
     });
   }
 });
